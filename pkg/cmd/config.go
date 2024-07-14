@@ -28,6 +28,7 @@ func NewConfigCommand() *cobra.Command {
 	f.Bool("http-enabled", conf.Server.HTTP.Enabled, "switch option for HTTP server")
 	f.String("account-id", conf.AccountID, "account id")
 	f.Int64("server-rate-limit", conf.Server.RateLimit, "the maximum number of requests the server should handle per second")
+	f.String("server-name-override", conf.Server.NameOverride, "server name override")
 	f.String("grpc-port", conf.Server.GRPC.Port, "port that GRPC server run on")
 	f.Bool("grpc-tls-enabled", conf.Server.GRPC.TLSConfig.Enabled, "switch option for GRPC tls server")
 	f.String("grpc-tls-key-path", conf.Server.GRPC.TLSConfig.KeyPath, "GRPC tls key path")
@@ -40,8 +41,14 @@ func NewConfigCommand() *cobra.Command {
 	f.StringSlice("http-cors-allowed-headers", conf.Server.HTTP.CORSAllowedHeaders, "CORS allowed headers for http gateway")
 	f.Bool("profiler-enabled", conf.Profiler.Enabled, "switch option for profiler")
 	f.String("profiler-port", conf.Profiler.Port, "profiler port address")
-	f.String("log-level", conf.Log.Level, "real time logs of authorization. Permify uses zerolog as a logger")
+	f.String("log-level", conf.Log.Level, "real time logs of authorization. Permify uses slog as a logger")
 	f.String("log-output", conf.Log.Output, "logger output valid values json, text")
+	f.Bool("log-enabled", conf.Log.Enabled, "logger exporter enabled")
+	f.String("log-exporter", conf.Log.Exporter, "can be; otlp. (integrated metric tools)")
+	f.String("log-endpoint", conf.Log.Endpoint, "export uri for logs")
+	f.Bool("log-insecure", conf.Log.Insecure, "use https or http for logs")
+	f.String("log-urlpath", conf.Log.URLPath, "allow to set url path for otlp exporter")
+	f.StringSlice("log-headers", conf.Log.Headers, "allows setting custom headers for the log exporter in key-value pairs")
 	f.Bool("authn-enabled", conf.Authn.Enabled, "enable server authentication")
 	f.String("authn-method", conf.Authn.Method, "server authentication method")
 	f.StringSlice("authn-preshared-keys", conf.Authn.Preshared.Keys, "preshared key/keys for server authentication")
@@ -130,6 +137,7 @@ func conf() func(cmd *cobra.Command, args []string) error {
 		data = append(data,
 			[]string{"account_id", cfg.AccountID, getKeyOrigin(cmd, "account-id", "PERMIFY_ACCOUNT_ID")},
 			// SERVER
+			[]string{"server.name_override", fmt.Sprintf("%v", cfg.Server.NameOverride), getKeyOrigin(cmd, "server-name-override", "PERMIFY_NAME_OVERRIDE")},
 			[]string{"server.rate_limit", fmt.Sprintf("%v", cfg.Server.RateLimit), getKeyOrigin(cmd, "server-rate-limit", "PERMIFY_RATE_LIMIT")},
 			[]string{"server.grpc.port", cfg.Server.GRPC.Port, getKeyOrigin(cmd, "grpc-port", "PERMIFY_GRPC_PORT")},
 			[]string{"server.grpc.tls.enabled", fmt.Sprintf("%v", cfg.Server.GRPC.TLSConfig.Enabled), getKeyOrigin(cmd, "grpc-tls-enabled", "PERMIFY_GRPC_TLS_ENABLED")},
@@ -146,6 +154,12 @@ func conf() func(cmd *cobra.Command, args []string) error {
 			// LOG
 			[]string{"logger.level", cfg.Log.Level, getKeyOrigin(cmd, "log-level", "PERMIFY_LOG_LEVEL")},
 			[]string{"logger.output", cfg.Log.Output, getKeyOrigin(cmd, "log-output", "PERMIFY_LOG_OUTPUT")},
+			[]string{"logger.enabled", fmt.Sprintf("%v", cfg.Log.Enabled), getKeyOrigin(cmd, "log-enabled", "PERMIFY_LOG_ENABLED")},
+			[]string{"logger.exporter", cfg.Log.Exporter, getKeyOrigin(cmd, "log-exporter", "PERMIFY_LOG_EXPORTER")},
+			[]string{"logger.endpoint", HideSecret(cfg.Log.Exporter), getKeyOrigin(cmd, "log-endpoint", "PERMIFY_LOG_ENDPOINT")},
+			[]string{"logger.insecure", fmt.Sprintf("%v", cfg.Log.Insecure), getKeyOrigin(cmd, "log-insecure", "PERMIFY_LOG_INSECURE")},
+			[]string{"logger.urlpath", cfg.Log.URLPath, getKeyOrigin(cmd, "log-urlpath", "PERMIFY_LOG_URL_PATH")},
+			[]string{"logger.headers", fmt.Sprintf("%v", cfg.Log.Headers), getKeyOrigin(cmd, "log-headers", "PERMIFY_LOG_HEADERS")},
 			// AUTHN
 			[]string{"authn.enabled", fmt.Sprintf("%v", cfg.Authn.Enabled), getKeyOrigin(cmd, "authn-enabled", "PERMIFY_AUTHN_ENABLED")},
 			[]string{"authn.method", cfg.Authn.Method, getKeyOrigin(cmd, "authn-method", "PERMIFY_AUTHN_METHOD")},

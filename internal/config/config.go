@@ -27,9 +27,10 @@ type (
 
 	// Server contains the configurations for both HTTP and gRPC servers.
 	Server struct {
-		HTTP      `mapstructure:"http"` // HTTP server configuration
-		GRPC      `mapstructure:"grpc"` // gRPC server configuration
-		RateLimit int64                 `mapstructure:"rate_limit"` // Rate limit configuration
+		HTTP         `mapstructure:"http"` // HTTP server configuration
+		GRPC         `mapstructure:"grpc"` // gRPC server configuration
+		NameOverride string                `mapstructure:"name_override"`
+		RateLimit    int64                 `mapstructure:"rate_limit"` // Rate limit configuration
 	}
 
 	// HTTP contains configuration for the HTTP server.
@@ -86,8 +87,14 @@ type (
 
 	// Log contains configuration for logging.
 	Log struct {
-		Level  string `mapstructure:"level"`  // Logging level
-		Output string `mapstructure:"output"` // Logging output format, e.g., text, json
+		Level    string   `mapstructure:"level"`    // Logging level
+		Output   string   `mapstructure:"output"`   // Logging output format, e.g., text, json
+		Enabled  bool     `mapstructure:"enabled"`  // Whether logging collection is enabled
+		Exporter string   `mapstructure:"exporter"` // Exporter for log data
+		Endpoint string   `mapstructure:"endpoint"` // Endpoint for the log exporter
+		Insecure bool     `mapstructure:"insecure"` // Connect to the collector using the HTTP scheme, instead of HTTPS.
+		URLPath  string   `mapstructure:"path"`     // Path for the log exporter, if not defined /v1/logs will be used
+		Headers  []string `mapstructure:"headers"`
 	}
 
 	// Tracer contains configuration for distributed tracing.
@@ -108,6 +115,7 @@ type (
 		Insecure bool     `mapstructure:"insecure"` // Connect to the collector using the HTTP scheme, instead of HTTPS.
 		URLPath  string   `mapstructure:"path"`     // Path for the metrics exporter, if not defined /v1/metrics will be used
 		Headers  []string `mapstructure:"headers"`
+		Interval int      `mapstructure:"interval"`
 	}
 
 	// Service contains configuration for various service-level features.
@@ -261,6 +269,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		AccountID: "",
 		Server: Server{
+			NameOverride: "",
 			HTTP: HTTP{
 				Enabled: true,
 				Port:    "3476",
@@ -282,7 +291,10 @@ func DefaultConfig() *Config {
 			Enabled: false,
 		},
 		Log: Log{
-			Level: "info",
+			Level:    "info",
+			Enabled:  true,
+			Exporter: "otlp",
+			Headers:  []string{},
 		},
 		Tracer: Tracer{
 			Enabled: false,
@@ -293,6 +305,7 @@ func DefaultConfig() *Config {
 			Exporter: "otlp",
 			Endpoint: "telemetry.permify.co",
 			Headers:  []string{},
+			Interval: 300,
 		},
 		Service: Service{
 			CircuitBreaker: false,

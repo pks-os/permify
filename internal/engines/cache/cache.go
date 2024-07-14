@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"encoding/hex"
+	"time"
 
 	"go.opentelemetry.io/otel"
 	api "go.opentelemetry.io/otel/metric"
@@ -16,7 +17,10 @@ import (
 	base "github.com/Permify/permify/pkg/pb/base/v1"
 )
 
-var tracer = otel.Tracer("check-cache")
+var (
+	tracer = otel.Tracer("check-cache")
+	meter  = otel.Meter("check-cache")
+)
 
 // CheckEngineWithCache is a struct that holds an instance of a cache.Cache for managing engine cache.
 type CheckEngineWithCache struct {
@@ -26,7 +30,8 @@ type CheckEngineWithCache struct {
 	cache        cache.Cache
 
 	// Metrics
-	cacheCounter api.Int64Counter
+	cacheCounter              api.Int64Counter
+	cacheHitDurationHistogram api.Int64Histogram
 }
 
 // NewCheckEngineWithCache creates a new instance of EngineKeyManager by initializing an EngineKeys
@@ -35,7 +40,6 @@ func NewCheckEngineWithCache(
 	checker invoke.Check,
 	schemaReader storage.SchemaReader,
 	cache cache.Cache,
-	meter api.Meter,
 ) invoke.Check {
 	// Cache Counter
 	cacheCounter, err := meter.Int64Counter("cache_check_count", api.WithDescription("Number of permission cached checks performed"))
@@ -43,11 +47,22 @@ func NewCheckEngineWithCache(
 		panic(err)
 	}
 
+	// Cache Hit Duration Histogram
+	cacheHitDurationHistogram, err := meter.Int64Histogram(
+		"cache_hit_duration",
+		api.WithUnit("microseconds"),
+		api.WithDescription("Duration of cache hits in microseconds"),
+	)
+	if err != nil {
+		panic(err)
+	}
+
 	return &CheckEngineWithCache{
-		schemaReader: schemaReader,
-		checker:      checker,
-		cache:        cache,
-		cacheCounter: cacheCounter,
+		schemaReader:              schemaReader,
+		checker:                   checker,
+		cache:                     cache,
+		cacheCounter:              cacheCounter,
+		cacheHitDurationHistogram: cacheHitDurationHistogram,
 	}
 }
 
@@ -74,9 +89,14 @@ func (c *CheckEngineWithCache) Check(ctx context.Context, request *base.Permissi
 	if found {
 		ctx, span := tracer.Start(ctx, "hit")
 		defer span.End()
+		start := time.Now()
 
 		// Increase the check count in the metrics.
 		c.cacheCounter.Add(ctx, 1)
+
+		duration := time.Now().Sub(start)
+		c.cacheHitDurationHistogram.Record(ctx, duration.Microseconds())
+
 		// If the request doesn't have the exclusion flag set, return the cached result.
 		return &base.PermissionCheckResponse{
 			Can:      res.GetCan(),
@@ -96,11 +116,12 @@ func (c *CheckEngineWithCache) Check(ctx context.Context, request *base.Permissi
 		}, err
 	}
 
+	// Add to histogram the response
+
 	c.setCheckKey(request, &base.PermissionCheckResponse{
 		Can:      cres.GetCan(),
 		Metadata: &base.PermissionCheckResponseMetadata{},
 	}, isRelational)
-
 	// Return the result of the permission check.
 	return cres, err
 }

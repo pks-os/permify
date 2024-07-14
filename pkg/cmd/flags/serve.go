@@ -29,6 +29,13 @@ func RegisterServeFlags(flags *pflag.FlagSet) {
 		panic(err)
 	}
 
+	if err = viper.BindPFlag("server.name_override", flags.Lookup("server-name-override")); err != nil {
+		panic(err)
+	}
+	if err = viper.BindEnv("server.name_override", "PERMIFY_NAME_OVERRIDE"); err != nil {
+		panic(err)
+	}
+
 	// GRPC Server
 	if err = viper.BindPFlag("server.grpc.port", flags.Lookup("grpc-port")); err != nil {
 		panic(err)
@@ -135,6 +142,48 @@ func RegisterServeFlags(flags *pflag.FlagSet) {
 		panic(err)
 	}
 	if err = viper.BindEnv("logger.output", "PERMIFY_LOG_OUTPUT"); err != nil {
+		panic(err)
+	}
+
+	if err = viper.BindPFlag("logger.enabled", flags.Lookup("log-enabled")); err != nil {
+		panic(err)
+	}
+	if err = viper.BindEnv("logger.enabled", "PERMIFY_LOG_ENABLED"); err != nil {
+		panic(err)
+	}
+
+	if err = viper.BindPFlag("logger.exporter", flags.Lookup("log-exporter")); err != nil {
+		panic(err)
+	}
+	if err = viper.BindEnv("logger.exporter", "PERMIFY_LOG_EXPORTER"); err != nil {
+		panic(err)
+	}
+
+	if err = viper.BindPFlag("logger.endpoint", flags.Lookup("log-endpoint")); err != nil {
+		panic(err)
+	}
+	if err = viper.BindEnv("logger.endpoint", "PERMIFY_LOG_ENDPOINT"); err != nil {
+		panic(err)
+	}
+
+	if err = viper.BindPFlag("logger.insecure", flags.Lookup("log-insecure")); err != nil {
+		panic(err)
+	}
+	if err = viper.BindEnv("logger.insecure", "PERMIFY_LOG_INSECURE"); err != nil {
+		panic(err)
+	}
+
+	if err = viper.BindPFlag("logger.urlpath", flags.Lookup("log-urlpath")); err != nil {
+		panic(err)
+	}
+	if err = viper.BindEnv("logger.urlpath", "PERMIFY_LOG_URL_PATH"); err != nil {
+		panic(err)
+	}
+
+	if err = viper.BindPFlag("logger.headers", flags.Lookup("log-headers")); err != nil {
+		panic(err)
+	}
+	if err = viper.BindEnv("logger.headers", "PERMIFY_LOG_HEADERS"); err != nil {
 		panic(err)
 	}
 
